@@ -102,4 +102,87 @@ export class TestHelpers {
   static async screenshot(page: Page, name: string) {
     await page.screenshot({ path: `screenshots/${name}.png`, fullPage: true });
   }
+
+  /**
+   * Upload a document via UI
+   */
+  static async uploadDocument(page: Page, filePath: string, customName?: string) {
+    // Click upload button
+    await page.click('button:has-text("Upload")');
+    
+    // Select file
+    const fileInput = page.locator('input[type="file"]');
+    await fileInput.setInputFiles(filePath);
+    
+    // Optionally enter custom name
+    if (customName) {
+      await page.locator('input[id="document-name"]').fill(customName);
+    }
+    
+    // Submit upload
+    await page.click('button:has-text("Upload Document")');
+    
+    // Wait for success
+    await page.waitForSelector('text=/uploaded successfully/i', { timeout: 10000 });
+  }
+
+  /**
+   * Navigate to documents page
+   */
+  static async goToDocuments(page: Page) {
+    await page.goto('/documents');
+    await expect(page).toHaveURL('/documents');
+  }
+
+  /**
+   * Wait for document to appear in list
+   */
+  static async waitForDocumentInList(page: Page, documentName: string) {
+    await page.click('button:has-text("My Documents")');
+    await expect(page.locator(`text=${documentName}`).first()).toBeVisible({ timeout: 5000 });
+  }
+
+  /**
+   * Delete a document by name
+   */
+  static async deleteDocument(page: Page, documentName: string, confirm = true) {
+    // Find the document card
+    const documentCard = page.locator(`text=${documentName}`).first().locator('xpath=ancestor::div[contains(@class, "rounded")]');
+    
+    // Click delete button
+    const deleteButton = documentCard.locator('button[title="Delete"]');
+    
+    // Handle confirmation dialog
+    if (confirm) {
+      page.once('dialog', dialog => dialog.accept());
+    } else {
+      page.once('dialog', dialog => dialog.dismiss());
+    }
+    
+    await deleteButton.click();
+    
+    // Wait for deletion to complete
+    if (confirm) {
+      await page.waitForTimeout(1000);
+    }
+  }
+
+  /**
+   * Search for documents
+   */
+  static async searchDocuments(page: Page, searchTerm: string) {
+    const searchInput = page.locator('input[placeholder*="Search"]');
+    await searchInput.fill(searchTerm);
+    await page.waitForTimeout(500); // Debounce
+  }
+
+  /**
+   * Clear authentication tokens
+   */
+  static async clearAuth(page: Page) {
+    await page.evaluate(() => {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+    });
+  }
 }

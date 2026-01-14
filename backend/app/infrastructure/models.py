@@ -202,3 +202,182 @@ class DocumentPageModel(Base):
     __table_args__ = (
         UniqueConstraint("document_id", "page_number", name="uq_document_page_number"),
     )
+
+
+class EnvelopeModel(Base):
+    """Envelope model for signing workflows."""
+
+    __tablename__ = "envelopes"
+
+    envelope_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    sender_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id"),
+        nullable=False,
+        index=True
+    )
+    subject: Mapped[str] = mapped_column(String(200), nullable=False)
+    message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="draft", index=True
+    )
+    signing_order: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="parallel"
+    )
+    expiration_days: Mapped[int] = mapped_column(Integer, nullable=False, default=30)
+    expires_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    void_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now(), index=True
+    )
+    sent_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True, index=True
+    )
+    completed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    voided_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    expired_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now()
+    )
+
+    # Relationships
+    envelope_documents: Mapped[list["EnvelopeDocumentModel"]] = relationship(
+        "EnvelopeDocumentModel",
+        back_populates="envelope",
+        cascade="all, delete-orphan"
+    )
+    recipients: Mapped[list["RecipientModel"]] = relationship(
+        "RecipientModel",
+        back_populates="envelope",
+        cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('draft', 'sent', 'delivered', 'signed', 'completed', 'declined', 'voided', 'expired')",
+            name="check_envelope_status"
+        ),
+        CheckConstraint(
+            "signing_order IN ('parallel', 'sequential')",
+            name="check_signing_order"
+        ),
+    )
+
+
+class EnvelopeDocumentModel(Base):
+    """Envelope-Document association model."""
+
+    __tablename__ = "envelope_documents"
+
+    envelope_document_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    envelope_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("envelopes.envelope_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    document_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("documents.document_id"),
+        nullable=False,
+        index=True
+    )
+    display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    # Relationships
+    envelope: Mapped["EnvelopeModel"] = relationship(
+        "EnvelopeModel",
+        back_populates="envelope_documents"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("envelope_id", "document_id", name="uq_envelope_document"),
+    )
+
+
+class RecipientModel(Base):
+    """Recipient model for envelope participants."""
+
+    __tablename__ = "recipients"
+
+    recipient_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    envelope_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("envelopes.envelope_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    user_id: Mapped[Optional[UUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id"),
+        nullable=True
+    )
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    role: Mapped[str] = mapped_column(String(20), nullable=False)
+    signing_order: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="pending", index=True
+    )
+    access_code: Mapped[str] = mapped_column(String(6), nullable=False)
+    access_code_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    decline_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sent_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    viewed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    signed_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    declined_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now()
+    )
+
+    # Relationships
+    envelope: Mapped["EnvelopeModel"] = relationship(
+        "EnvelopeModel",
+        back_populates="recipients"
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('signer', 'cc', 'approver')",
+            name="check_recipient_role"
+        ),
+        CheckConstraint(
+            "status IN ('pending', 'sent', 'viewed', 'signed', 'declined')",
+            name="check_recipient_status"
+        ),
+    )
