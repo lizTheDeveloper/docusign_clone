@@ -43,7 +43,7 @@ function App() {
                     {/* Public routes */}
                     <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/login" element={<LoginForm />} />
-                        <Route path="/documents" element={<Documents />} />
+                    <Route path="/documents" element={<Documents />} />
                     <Route path="/register" element={<RegisterForm />} />
                     <Route path="/forgot-password" element={<ForgotPasswordForm />} />
                     <Route path="/reset-password" element={<ResetPasswordForm />} />
