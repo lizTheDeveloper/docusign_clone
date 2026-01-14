@@ -9,10 +9,14 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    BigInteger,
+    Float,
+    ForeignKey,
     CheckConstraint,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
@@ -117,3 +121,84 @@ class RefreshTokenModel(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
     last_used_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class DocumentModel(Base):
+    """Document model for uploaded files."""
+
+    __tablename__ = "documents"
+
+    document_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    user_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.user_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(500), nullable=False)
+    file_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    file_size: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    page_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    checksum: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    encryption_key_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="processing"
+    )
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    thumbnail_storage_key: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    in_use_by_envelopes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    uploaded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+    deleted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Relationships
+    pages: Mapped[list["DocumentPageModel"]] = relationship(
+        "DocumentPageModel",
+        back_populates="document",
+        cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('processing', 'ready', 'failed')",
+            name="check_document_status"
+        ),
+    )
+
+
+class DocumentPageModel(Base):
+    """Document page model for individual pages."""
+
+    __tablename__ = "document_pages"
+
+    page_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    document_id: Mapped[UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("documents.document_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+    page_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    width: Mapped[float] = mapped_column(Float, nullable=False)
+    height: Mapped[float] = mapped_column(Float, nullable=False)
+    thumbnail_storage_key: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )
+
+    # Relationships
+    document: Mapped["DocumentModel"] = relationship(
+        "DocumentModel",
+        back_populates="pages"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("document_id", "page_number", name="uq_document_page_number"),
+    )

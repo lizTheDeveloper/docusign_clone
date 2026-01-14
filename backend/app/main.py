@@ -1,4 +1,5 @@
 """FastAPI application entry point."""
+import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
@@ -8,6 +9,11 @@ from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.database import close_db, init_db
+from app.logging_config import setup_logging
+
+# Setup logging
+setup_logging()
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
@@ -20,9 +26,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     Handles startup and shutdown events.
     """
     # Startup
-    # await init_db()  # Uncomment when models are defined
+    logger.info(f"Starting {settings.app_name} in {settings.app_env} mode")
+    # await init_db()  # Only needed if you want to auto-create tables (use migrations instead)
     yield
     # Shutdown
+    logger.info("Shutting down application")
     await close_db()
 
 
@@ -78,6 +86,7 @@ app.add_middleware(RateLimitMiddleware, max_requests=settings.rate_limit_per_min
 app.add_middleware(RequestLoggingMiddleware)
 
 # Import and include routers
-from app.api.v1.endpoints import auth
+from app.api.v1.endpoints import auth, documents
 
 app.include_router(auth.router, prefix=f"/api/{settings.api_version}")
+app.include_router(documents.router, prefix=f"/api/{settings.api_version}")

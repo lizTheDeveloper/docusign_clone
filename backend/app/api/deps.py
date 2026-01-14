@@ -8,9 +8,14 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.services.auth_service import AuthService, InvalidTokenError
+from app.application.services.document_service import DocumentService
+from app.config import get_settings
 from app.database import get_db
-from app.infrastructure.repositories.user_repository import UserRepository
 from app.domain.models.user import User
+from app.infrastructure.repositories.document_repository import DocumentRepository
+from app.infrastructure.repositories.user_repository import UserRepository
+from app.infrastructure.services.pdf_service import PdfService
+from app.infrastructure.services.storage_service import StorageService
 
 logger = logging.getLogger(__name__)
 
@@ -170,3 +175,54 @@ async def get_optional_current_user(
         
     except Exception:
         return None
+
+
+def get_storage_service() -> StorageService:
+    """
+    Dependency to get StorageService instance.
+    
+    Returns:
+        StorageService: Storage service instance
+    """
+    settings = get_settings()
+    return StorageService(
+        bucket_name=settings.s3_bucket_name,
+        region=settings.s3_region,
+        access_key=settings.s3_access_key,
+        secret_key=settings.s3_secret_key,
+        endpoint_url=settings.s3_endpoint_url,
+    )
+
+
+def get_pdf_service() -> PdfService:
+    """
+    Dependency to get PdfService instance.
+    
+    Returns:
+        PdfService: PDF service instance
+    """
+    return PdfService()
+
+
+async def get_document_service(
+    session: AsyncSession = Depends(get_db),
+    storage_service: StorageService = Depends(get_storage_service),
+    pdf_service: PdfService = Depends(get_pdf_service),
+) -> DocumentService:
+    """
+    Dependency to get DocumentService instance.
+    
+    Args:
+        session: Database session
+        storage_service: Storage service
+        pdf_service: PDF service
+        
+    Returns:
+        DocumentService: Document service instance
+    """
+    document_repository = DocumentRepository(session)
+    return DocumentService(
+        document_repository=document_repository,
+        storage_service=storage_service,
+        pdf_service=pdf_service,
+    )

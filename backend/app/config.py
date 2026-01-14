@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     debug: bool = True
     api_version: str = "v1"
-    secret_key: str
+    secret_key: str = "dev-secret-key-change-in-production"
 
     # Database
     database_url: str
@@ -31,11 +31,11 @@ class Settings(BaseSettings):
     redis_cache_ttl: int = 3600
 
     # Email (SMTP)
-    smtp_host: str
+    smtp_host: str = "localhost"
     smtp_port: int = 587
-    smtp_user: str
-    smtp_password: str
-    smtp_from_email: str
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = "noreply@example.com"
     smtp_from_name: str = "DocuSign Clone"
 
     # Rate Limiting
@@ -53,6 +53,14 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: str = "http://localhost:3000"
     cors_allow_credentials: bool = True
+
+    # S3 Storage
+    s3_bucket_name: str = "docusign-clone-dev"
+    s3_region: str = "us-east-1"
+    s3_access_key: str = "dev-access-key"
+    s3_secret_key: str = "dev-secret-key"
+    s3_endpoint_url: str = ""  # Optional, for S3-compatible services
+    s3_presigned_url_expiration: int = 3600  # 1 hour in seconds
 
     model_config = SettingsConfigDict(
         env_file=".env",

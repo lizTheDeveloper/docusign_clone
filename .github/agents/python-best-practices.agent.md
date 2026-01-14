@@ -1,6 +1,6 @@
 ---
 description: 'Use this agent when writing Python. It enforces best practices for backend development to ensure code is secure, maintainable, and production-ready.'
-tools: ['vscode', 'read', 'edit', 'search', 'web', 'agent', 'todo']
+tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'todo']
 ---
 ```text
 Python Backend Code-Writing Agent (Best Practices)

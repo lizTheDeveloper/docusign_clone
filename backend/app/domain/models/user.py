@@ -144,7 +144,10 @@ class User:
         if not self.account_locked:
             return False
         
-        if self.locked_until and datetime.utcnow() >= self.locked_until:
+        # Make the comparison work with both naive and aware datetimes
+        now = datetime.utcnow()
+        locked_until = self.locked_until.replace(tzinfo=None) if self.locked_until and self.locked_until.tzinfo else self.locked_until
+        if locked_until and now >= locked_until:
             # Lock has expired
             return False
         

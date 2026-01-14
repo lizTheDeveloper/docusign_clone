@@ -1,0 +1,7 @@
+2026-01-13 16:08:18 - root - INFO - Logging configured successfully
+2026-01-13 16:08:18 - passlib.utils.compat - DEBUG - loaded lazy attr 'SafeConfigParser': <class 'configparser.ConfigParser'>
+2026-01-13 16:08:18 - passlib.utils.compat - DEBUG - loaded lazy attr 'NativeStringIO': <class '_io.StringIO'>
+2026-01-13 16:08:18 - passlib.utils.compat - DEBUG - loaded lazy attr 'BytesIO': <class '_io.BytesIO'>
+2026-01-13 16:08:18 - passlib.registry - DEBUG - registered 'argon2' handler: <class 'passlib.handlers.argon2.argon2'>
+2026-01-13 16:08:19 - app.main - INFO - Starting DocuSign Clone in development mode
+2026-01-13 16:08:28 - app.main - INFO - Shutting down application

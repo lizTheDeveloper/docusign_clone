@@ -32,6 +32,15 @@ class DocumentUploadResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class UserInfoSchema(BaseModel):
+    """Minimal user information for document metadata."""
+    user_id: UUID
+    name: str
+    email: str
+
+    model_config = {"from_attributes": True}
+
+
 class DocumentMetadataResponse(BaseModel):
     """Response schema for detailed document metadata."""
     document_id: UUID
@@ -44,17 +53,8 @@ class DocumentMetadataResponse(BaseModel):
     thumbnail_url: Optional[str] = None
     checksum: str
     uploaded_at: datetime
-    uploaded_by: "UserInfoSchema"
+    uploaded_by: UserInfoSchema
     pages: list[DocumentPageSchema] = []
-
-    model_config = {"from_attributes": True}
-
-
-class UserInfoSchema(BaseModel):
-    """Minimal user information for document metadata."""
-    user_id: UUID
-    name: str
-    email: str
 
     model_config = {"from_attributes": True}
 
